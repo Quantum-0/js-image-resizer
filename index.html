@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Image Resizer — 112 / 56 / 28</title>
+  <title>Twitch Icons Resizer</title>
   <style>
     :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8}
     html,body{height:100%;margin:0;font-family:Inter,Segoe UI,Roboto,system-ui,Arial;background:linear-gradient(180deg,#08101a 0%, #0f1724 100%);color:#e6eef6}
@@ -44,14 +44,14 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>Image Resizer — 112 × 112, 56 × 56, 28 × 28</h1>
-      <p class="lead">Нажмите кнопку или перетащите изображение на страницу. Оно будет локально ресайзено в 3 варианта и показано ниже. Клик по превью — скачивание.</p>
+      <h1>Twitch Images Resizer</h1>
+      <p class="lead">Нажмите кнопку или перетащите изображение на страницу. Оно преобразуется в 3 квадратных изображения: 28x28, 56x56 и 112х112 пикселей - которые принимает Twitch</p>
 
       <button id="pickBtn" class="big-btn">Выбрать изображение</button>
       <input id="fileInput" class="hidden-input" type="file" accept="image/*">
 
       <div id="previewArea" class="previews" aria-live="polite"></div>
-      <p class="note">Сгенерированные файлы — PNG с прозрачностью (если исходник поддерживает). Не отправляется на сервер.</p>
+      <p class="note">Изображения генерируются локально в браузере, без отправки на сервер, в формате PNG с сохранением исходной прозрачности. Made by Quantum (<a href="https://www.twitch.tv/quantum075">Twitch</a>/<a href="https://github.com/Quantum-0">Github</a>).</p>
     </div>
   </div>
 

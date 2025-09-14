@@ -94,6 +94,19 @@
       if (f) handleFile(f);
     });
 
+    document.addEventListener('paste', (e) => {
+      const items = e.clipboardData.items;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const f = item.getAsFile();
+          if (f) {
+            handleFile(f);
+            break;
+          }
+        }
+      }
+    });
+
     async function handleFile(f){
       if (!f.type.startsWith('image/')){
         alert('Пожалуйста, выберите файл изображения.');

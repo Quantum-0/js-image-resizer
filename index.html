@@ -22,13 +22,30 @@
     .preview .thumb{width:112px;height:112px;display:flex;align-items:center;justify-content:center;border-radius:6px;overflow:hidden}
     a.download-link{display:inline-block;text-decoration:none;margin-top:6px;padding:6px 8px;border-radius:7px;background:rgba(255,255,255,0.03);color:var(--muted);font-size:13px}
     @media (max-width:540px){.preview{width:90px}.preview img{width:70px;height:70px}.preview .thumb{width:84px;height:84px}}
+
+    /* Подсветка при drag-over */
+    body.drag-over::before {
+      content: "Перетащите изображение сюда";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(6,182,212,0.15);
+      border: 3px dashed var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: bold;
+      color: var(--accent);
+      z-index: 9999;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="card">
       <h1>Image Resizer — 112 × 112, 56 × 56, 28 × 28</h1>
-      <p class="lead">Нажмите кнопку, выберите изображение. Оно будет локально ресайзено в 3 варианта и показано ниже. Клик по превью — скачивание.</p>
+      <p class="lead">Нажмите кнопку или перетащите изображение на страницу. Оно будет локально ресайзено в 3 варианта и показано ниже. Клик по превью — скачивание.</p>
 
       <button id="pickBtn" class="big-btn">Выбрать изображение</button>
       <input id="fileInput" class="hidden-input" type="file" accept="image/*">
@@ -46,21 +63,45 @@
     const previewArea = document.getElementById('previewArea');
 
     pickBtn.addEventListener('click', () => fileInput.click());
-
-    fileInput.addEventListener('change', async (ev) => {
+    fileInput.addEventListener('change', (ev) => {
       const f = ev.target.files && ev.target.files[0];
-      if (!f) return;
+      if (f) handleFile(f);
+      fileInput.value = '';
+    });
+
+    // drag&drop с подсветкой
+    let dragCounter = 0;
+    document.body.addEventListener('dragenter', (e) => {
+      dragCounter++;
+      document.body.classList.add('drag-over');
+    });
+    document.body.addEventListener('dragleave', (e) => {
+      dragCounter--;
+      if (dragCounter <= 0) {
+        document.body.classList.remove('drag-over');
+        dragCounter = 0;
+      }
+    });
+    document.body.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+    document.body.addEventListener('drop', (e) => {
+      e.preventDefault();
+      document.body.classList.remove('drag-over');
+      dragCounter = 0;
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) handleFile(f);
+    });
+
+    async function handleFile(f){
       if (!f.type.startsWith('image/')){
         alert('Пожалуйста, выберите файл изображения.');
         return;
       }
-
       previewArea.innerHTML = '';
-
       try {
         const dataUrl = await readFileAsDataURL(f);
         const img = await loadImage(dataUrl);
-
         for (const size of SIZES){
           const url = await resizeImageToSquarePNG(img, size);
           addPreview(url, size);
@@ -68,10 +109,8 @@
       } catch (err){
         console.error(err);
         alert('Не удалось обработать изображение.');
-      } finally {
-        fileInput.value = '';
       }
-    });
+    }
 
     function readFileAsDataURL(file){
       return new Promise((res, rej) => {

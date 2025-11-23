@@ -39,6 +39,55 @@
       z-index: 9999;
       pointer-events: none;
     }
+
+    /* === Toggle Crop Switch === */
+    .crop-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .crop-toggle input {
+      display: none;
+    }
+
+    .crop-toggle .slider {
+      width: 40px;
+      height: 20px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      position: relative;
+      transition: 0.25s;
+    }
+
+    .crop-toggle .slider::before {
+      content: "";
+      position: absolute;
+      left: 2px;
+      top: 2px;
+      width: 16px;
+      height: 16px;
+      background: var(--muted);
+      border-radius: 50%;
+      transition: 0.25s;
+    }
+
+    .crop-toggle input:checked + .slider {
+      background: var(--accent);
+    }
+
+    .crop-toggle input:checked + .slider::before {
+      transform: translateX(20px);
+      background: black;
+    }
+
+    .crop-toggle .label-text {
+      font-size: 14px;
+      color: var(--muted);
+    }
   </style>
 </head>
 <body>
@@ -49,6 +98,14 @@
 
       <button id="pickBtn" class="big-btn">Выбрать изображение</button>
       <input id="fileInput" class="hidden-input" type="file" accept="image/*">
+      
+      <br>
+
+      <label class="crop-toggle">
+        <input type="checkbox" id="cropToggle">
+        <span class="slider"></span>
+        <span class="label-text">Обрезать пустую область</span>
+      </label>
 
       <div id="previewArea" class="previews" aria-live="polite"></div>
       <p class="note">Изображения генерируются локально в браузере, без отправки на сервер, в формате PNG с сохранением исходной прозрачности.</p>
@@ -116,8 +173,16 @@
       try {
         const dataUrl = await readFileAsDataURL(f);
         const img = await loadImage(dataUrl);
+
+        let base = img;
+
+        // === Если включен crop, обрезаем прозрачные пиксели ===
+        if (document.getElementById('cropToggle').checked) {
+          base = cropTransparent(img);
+        }
+
         for (const size of SIZES){
-          const url = await resizeImageToSquarePNG(img, size);
+          const url = await resizeImageToSquarePNG(base, size);
           addPreview(url, size);
         }
       } catch (err){
@@ -145,6 +210,74 @@
       });
     }
 
+    /* === Автоматическое обрезание прозрачной области === */
+    function cropTransparent(img) {
+      const tCanvas = document.createElement('canvas');
+      const tCtx = tCanvas.getContext('2d');
+
+      tCanvas.width = img.width;
+      tCanvas.height = img.height;
+      tCtx.drawImage(img, 0, 0);
+
+      const { data, width, height } = tCtx.getImageData(0, 0, img.width, img.height);
+
+      let top = 0, bottom = height - 1, left = 0, right = width - 1;
+      let found = false;
+
+      // top
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (data[(y * width + x) * 4 + 3] !== 0) {
+            top = y; found = true; break;
+          }
+        }
+        if (found) break;
+      }
+
+      // bottom
+      found = false;
+      for (let y = height - 1; y >= 0; y--) {
+        for (let x = 0; x < width; x++) {
+          if (data[(y * width + x) * 4 + 3] !== 0) {
+            bottom = y; found = true; break;
+          }
+        }
+        if (found) break;
+      }
+
+      // left
+      found = false;
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          if (data[(y * width + x) * 4 + 3] !== 0) {
+            left = x; found = true; break;
+          }
+        }
+        if (found) break;
+      }
+
+      // right
+      found = false;
+      for (let x = width - 1; x >= 0; x--) {
+        for (let y = 0; y < height; y++) {
+          if (data[(y * width + x) * 4 + 3] !== 0) {
+            right = x; found = true; break;
+          }
+        }
+        if (found) break;
+      }
+
+      const w = right - left + 1;
+      const h = bottom - top + 1;
+
+      const out = document.createElement('canvas');
+      out.width = w;
+      out.height = h;
+      out.getContext('2d').drawImage(tCanvas, left, top, w, h, 0, 0, w, h);
+
+      return out;
+    }
+
     async function resizeImageToSquarePNG(img, targetSize){
       const canvas = document.createElement('canvas');
       canvas.width = targetSize;
@@ -152,7 +285,9 @@
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0,0,canvas.width,canvas.height);
 
-      const {width: iw, height: ih} = img;
+      const iw = img.width;
+      const ih = img.height;
+
       const scale = Math.min(targetSize / iw, targetSize / ih);
       const nw = Math.round(iw * scale);
       const nh = Math.round(ih * scale);
